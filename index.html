@@ -145,8 +145,25 @@
     </div>
 
     <div class="card p-4" id="secaoExportacao" style="display: none;">
-        <h4 class="step-title">Passo 6: Pré-visualização e Exportação</h4>
-        <button class="btn btn-primary btn-lg w-100 fw-bold shadow mb-4" onclick="gerarPreview()">Gerar Pré-visualização</button>
+        <h4 class="step-title">Passo 6: Preferências e Geração do Relatório</h4>
+        
+        <div class="row align-items-center mb-4 p-3 bg-light border rounded">
+            <div class="col-md-7">
+                <label class="form-label fw-bold text-primary">Deseja priorizar as máquinas em algum dia da semana?</label>
+                <select id="diaPrioridade" class="form-select border-primary">
+                    <option value="nenhum">Não, usar otimização padrão (Evitar conflitos)</option>
+                    <option value="segunda">Sim, priorizar Segunda-feira</option>
+                    <option value="terca">Sim, priorizar Terça-feira</option>
+                    <option value="quarta">Sim, priorizar Quarta-feira</option>
+                    <option value="quinta">Sim, priorizar Quinta-feira</option>
+                    <option value="sexta">Sim, priorizar Sexta-feira</option>
+                </select>
+                <small class="text-muted d-block mt-1">O sistema focará em entregar o equipamento neste dia primeiro, ignorando lotação.</small>
+            </div>
+            <div class="col-md-5 d-flex align-items-end mt-3 mt-md-0">
+                <button class="btn btn-primary btn-lg w-100 fw-bold shadow" onclick="gerarPreview()">👁️ Gerar Pré-visualização</button>
+            </div>
+        </div>
         
         <div id="areaPreview" class="d-none border rounded p-3 bg-white shadow-sm">
             <h5 class="text-center fw-bold text-success mb-3">✅ Pré-visualização do Relatório</h5>
@@ -167,14 +184,14 @@
       <div class="modal-body">
         <p class="lead">Bem-vindo(a) ao sistema inteligente de distribuição de notebooks.</p>
         <ol class="list-group list-group-numbered">
-            <li class="list-group-item"><strong>Identificação (Passo 1):</strong> Insira o nome da sua escola para personalizar o arquivo e atualizar automaticamente o nome do salvamento.</li>
-            <li class="list-group-item"><strong>Configure os Carrinhos (Passo 2):</strong> Diga quantas estações você tem e os notebooks de cada uma.</li>
-            <li class="list-group-item"><strong>Crie a Escola (Passo 3):</strong> Selecione o modelo e quantidade de alunos em cada sala.</li>
-            <li class="list-group-item"><strong>Monte a Grade (Passo 4):</strong> Preencha o horário de aulas das turmas.</li>
-            <li class="list-group-item"><strong>Regras de Uso (Passo 5):</strong> Insira as disciplinas, a prioridade e a cota semanal.</li>
-            <li class="list-group-item"><strong>Visualizar e Salvar (Passo 6):</strong> Veja o resultado na tela e baixe o PDF. O algoritmo otimiza o uso do fim para o começo da semana!</li>
+            <li class="list-group-item"><strong>Identificação:</strong> Insira o nome da escola para o título do arquivo e cabeçalho.</li>
+            <li class="list-group-item"><strong>Configure os Carrinhos:</strong> Diga quantas estações você tem e os notes de cada uma.</li>
+            <li class="list-group-item"><strong>Crie a Escola:</strong> Selecione o modelo e quantidade de alunos em cada sala.</li>
+            <li class="list-group-item"><strong>Monte a Grade:</strong> Preencha o horário de aulas das turmas.</li>
+            <li class="list-group-item"><strong>Regras de Uso:</strong> Insira as disciplinas, a prioridade e a cota semanal.</li>
+            <li class="list-group-item"><strong>Visualizar e Salvar:</strong> Escolha se quer priorizar algum dia de uso na semana, visualize a tabela inteligente e baixe seu PDF final!</li>
         </ol>
-        <div class="mt-3 alert alert-info mb-0"><strong>Dica de Ouro:</strong> Salve seu progresso clicando em <strong>💾 Salvar</strong> no topo para não perder seus dados!</div>
+        <div class="mt-3 alert alert-info mb-0"><strong>Dica de Ouro:</strong> Salve seu progresso clicando em <strong>💾 Salvar</strong> no topo para não perder seus dados na semana seguinte!</div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary fw-bold" data-bs-dismiss="modal">Entendi, vamos começar!</button>
@@ -210,29 +227,26 @@
     let prioridadesInfo = []; 
     let dadosParaPDF = { dias: {}, auditoria: [] };
 
-    // Executado ao abrir a página
     window.onload = () => {
         gerarCamposEstacoes();
         
-        // Alimenta o select do Passo 5
         const select = document.getElementById('selectDisciplinaPrioridade');
         select.innerHTML = '';
         componentes.forEach(c => select.innerHTML += `<option value="${c}">${c}</option>`);
 
-        // Força a exibição do Tutorial Pop-up removendo travas de cache
         const modalElement = document.getElementById('modalTutorial');
         if (modalElement) {
             const tutorialModal = new bootstrap.Modal(modalElement);
-            tutorialModal.show();
+            if (!localStorage.getItem('tutorialNotebooksVisto2')) { // Atualizado para mostrar novamente a nova opção
+                tutorialModal.show();
+                localStorage.setItem('tutorialNotebooksVisto2', 'true');
+            }
         }
     };
 
     function abrirTutorial() {
         const modalElement = document.getElementById('modalTutorial');
-        if(modalElement) {
-            const m = new bootstrap.Modal(modalElement);
-            m.show();
-        }
+        if(modalElement) new bootstrap.Modal(modalElement).show();
     }
 
     function atualizarNomeArquivoAutomatico(nomeEscola) {
@@ -374,7 +388,9 @@
         if (!nomeArquivo.endsWith('.json')) nomeArquivo += '.json';
         
         const nomeEscola = document.getElementById('nomeEscola').value;
-        const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({nomeEscola, numAulasDia, estacoes, turmas, prioridadesInfo}));
+        const diaPrio = document.getElementById('diaPrioridade') ? document.getElementById('diaPrioridade').value : 'nenhum';
+        
+        const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({nomeEscola, numAulasDia, estacoes, turmas, prioridadesInfo, diaPrioridade: diaPrio}));
         const a = document.createElement('a'); a.href = data; a.download = nomeArquivo;
         document.body.appendChild(a); a.click(); a.remove();
     }
@@ -392,9 +408,8 @@
                 turmas = app.turmas || []; 
                 prioridadesInfo = app.prioridadesInfo || [];
                 
-                if(app.nomeEscola) {
-                    document.getElementById('nomeEscola').value = app.nomeEscola;
-                }
+                if(app.nomeEscola) document.getElementById('nomeEscola').value = app.nomeEscola;
+                if(app.diaPrioridade && document.getElementById('diaPrioridade')) document.getElementById('diaPrioridade').value = app.diaPrioridade;
 
                 turmas.forEach(t => {
                     if(t.grade && t.grade['Segunda']) {
@@ -439,11 +454,68 @@
         lerEstacoes();
         if(estacoes.length === 0 || turmas.length === 0) return alert("Faltam dados para gerar a distribuição.");
 
-        let diasIdsReverso = [...diasIds].reverse(); 
+        let diaPriorizado = document.getElementById('diaPrioridade').value;
+        let concorrenciaPorHorario = {}; 
+        
+        // Mapeia concorrência
+        diasIds.forEach(diaId => {
+            for(let aula = 1; aula <= numAulasDia; aula++) {
+                let count = 0;
+                turmas.forEach(t => {
+                    let comp = t.grade[diaId][aula];
+                    if(comp && prioridadesInfo.some(p => p.nome === comp)) count++;
+                });
+                concorrenciaPorHorario[`${diaId}_${aula}`] = count;
+            }
+        });
+
+        let slotsElegiveis = new Set();
+        
+        turmas.forEach(turma => {
+            let disciplinasDaTurma = [...new Set(diasIds.flatMap(d => Object.values(turma.grade[d])).filter(c => c && prioridadesInfo.some(p => p.nome === c)))];
+            
+            disciplinasDaTurma.forEach(comp => {
+                const regra = prioridadesInfo.find(p => p.nome === comp);
+                let ocorrencias = [];
+                
+                diasIds.forEach(diaId => {
+                    for(let aula = 1; aula <= numAulasDia; aula++) {
+                        if(turma.grade[diaId][aula] === comp) {
+                            ocorrencias.push({ diaId, aula, concorrencia: concorrenciaPorHorario[`${diaId}_${aula}`] });
+                        }
+                    }
+                });
+
+                // Ordenação inteligente: Dia Priorizado > Menor Concorrência > Fim de semana
+                ocorrencias.sort((a, b) => {
+                    if (diaPriorizado !== 'nenhum') {
+                        let aPrio = a.diaId === diaPriorizado;
+                        let bPrio = b.diaId === diaPriorizado;
+                        if (aPrio && !bPrio) return -1;
+                        if (!aPrio && bPrio) return 1;
+                    }
+                    if(a.concorrencia !== b.concorrencia) return a.concorrencia - b.concorrencia;
+                    let diaDiff = diasIds.indexOf(a.diaId) - diasIds.indexOf(b.diaId);
+                    if(diaDiff !== 0) return diaDiff;
+                    return a.aula - b.aula;
+                });
+
+                let selecionadas = ocorrencias.slice(0, regra.aulasSemana);
+                selecionadas.forEach(s => { slotsElegiveis.add(`${turma.id}_${s.diaId}_${s.aula}`); });
+            });
+        });
+
+        // Ordem do Motor: Processa primeiro o Dia Priorizado, depois o resto de trás pra frente
+        let diasParaProcessar = [...diasIds].reverse();
+        if (diaPriorizado !== 'nenhum') {
+            diasParaProcessar = diasParaProcessar.filter(d => d !== diaPriorizado);
+            diasParaProcessar.unshift(diaPriorizado);
+        }
+
         let alocacoesFinais = [];
         let contagemUso = {};
 
-        diasIdsReverso.forEach(diaId => {
+        diasParaProcessar.forEach(diaId => {
             for(let aula = numAulasDia; aula >= 1; aula--) {
                 let estAtual = estacoes.map(e => ({ id: e.id, qtd: e.qtd, disponivel: e.qtd, split: e.split, bloqueada: false }));
                 let demandas = [];
@@ -452,12 +524,8 @@
                     const comp = turma.grade[diaId][aula];
                     if(!comp) return;
                     const regra = prioridadesInfo.find(p => p.nome === comp);
-                    if(regra) {
-                        const chaveUso = `${turma.id}_${comp}`;
-                        const usoAtual = contagemUso[chaveUso] || 0;
-                        if(usoAtual < regra.aulasSemana) {
-                            demandas.push({ turma, comp, prioridade: regra.prioridade, chaveUso, alunos: turma.alunos });
-                        }
+                    if(regra && slotsElegiveis.has(`${turma.id}_${diaId}_${aula}`)) {
+                        demandas.push({ turma, comp, prioridade: regra.prioridade, chaveUso: `${turma.id}_${comp}`, alunos: turma.alunos });
                     }
                 });
 
@@ -532,6 +600,7 @@
             }
         });
 
+        // Reordena para exibir cronologicamente na tela
         alocacoesFinais.sort((a, b) => {
             let diaDiff = diasIds.indexOf(a.diaId) - diasIds.indexOf(b.diaId);
             if(diaDiff !== 0) return diaDiff;
