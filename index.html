@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador Escolar - Provas e Notebooks</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { background-color: #f0f2f5; padding-bottom: 50px; }
+        .card { margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); border: none; border-radius: 10px;}
+        .step-title { border-bottom: 3px solid #0d6efd; padding-bottom: 10px; margin-bottom: 20px; font-weight: bold; color: #333;}
+        .table-horario th, .table-horario td { text-align: center; vertical-align: middle; padding: 5px; }
+        .select-componente { width: 100%; font-size: 0.85rem; padding: 4px; }
+        .destaque-prova { font-weight: bold; color: #d63384; }
+        .toolbar { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; border-left: 5px solid #0d6efd; }
+        .text-purple { color: #8b008b !important; }
+        .text-orange { color: #fd7e14 !important; }
+        .text-red { color: #dc3545 !important; }
+    </style>
+</head>
+<body>
+
+<div class="container mt-4">
+    <h1 class="mb-3 text-center fw-bold text-primary">Sistema de Distribuição de Notebooks</h1>
+
+    <div class="toolbar d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <button class="btn btn-primary fw-bold shadow-sm rounded-pill px-3" onclick="abrirTutorial()">
+                ℹ️ Como Usar (Tutorial)
+            </button>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <input type="file" id="arquivoJSON" class="d-none" accept=".json" onchange="carregarDadosJSON(event)">
+            <button class="btn btn-info text-white fw-bold shadow-sm" onclick="document.getElementById('arquivoJSON').click()">
+                📂 Carregar (JSON)
+            </button>
+            <div class="input-group shadow-sm" style="width: auto;">
+                <input type="text" id="nomeArquivoJSON" class="form-control text-secondary" placeholder="Nome do arquivo" value="projeto_notebooks">
+                <span class="input-group-text bg-light">.json</span>
+                <button class="btn btn-secondary fw-bold" onclick="salvarDadosJSON()">
+                    💾 Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-4">
+        <h4 class="step-title">Passo 1: Identificação da Unidade</h4>
+        <div class="row">
+            <div class="col-12">
+                <label class="form-label fw-bold">Nome da Escola / Unidade Escolar:</label>
+                <input type="text" id="nomeEscola" class="form-control form-control-lg border-primary" placeholder="Ex: E.E. Professor João da Silva" oninput="atualizarNomeArquivoAutomatico(this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-4">
+        <h4 class="step-title">Passo 2: Estações de Equipamentos (Carrinhos)</h4>
+        <div class="row g-3 align-items-center mb-3">
+            <div class="col-auto"><label class="col-form-label fw-bold">Nº de Estações:</label></div>
+            <div class="col-auto"><input type="number" id="numEstacoes" class="form-control" min="1" value="1"></div>
+            <div class="col-auto"><button class="btn btn-primary fw-bold" onclick="gerarCamposEstacoes()">Gerar Campos</button></div>
+        </div>
+        <div id="containerEstacoes" class="row g-3"></div>
+    </div>
+
+    <div class="card p-4">
+        <h4 class="step-title">Passo 3: Modelo da Escola e Turmas</h4>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Modelo de Escola</label>
+                <select id="modeloEscola" class="form-select">
+                    <option value="9">PEI - 9 Horas (9 Aulas/dia)</option>
+                    <option value="7">PEI - 7 Horas (7 Aulas/dia)</option>
+                    <option value="6">Parcial Diurno (6 Aulas/dia)</option>
+                    <option value="5">Parcial Noturno (5 Aulas/dia)</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Quantidade de Turmas</label>
+                <input type="number" id="numTurmas" class="form-control" min="1" value="1">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-primary w-100 fw-bold" onclick="gerarCamposTurmas()">Configurar Turmas</button>
+            </div>
+        </div>
+        <div id="containerNomesTurmas" class="row g-3 mb-3"></div>
+        <div id="btnConfirmarTurmas" class="d-none">
+            <button class="btn btn-success fw-bold" onclick="iniciarHorarios()">Confirmar Turmas e Abrir Grade</button>
+        </div>
+    </div>
+
+    <div class="card p-4" id="secaoHorario" style="display: none;">
+        <h4 class="step-title">Passo 4: Grade de Horários</h4>
+        <div class="mb-3 w-50">
+            <label class="form-label fw-bold">Selecione a turma para montar o horário:</label>
+            <select id="seletorTurmaGrade" class="form-select border-primary" onchange="renderizarGradeTurma()"></select>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-horario">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Aula</th>
+                        <th>Segunda</th>
+                        <th>Terça</th>
+                        <th>Quarta</th>
+                        <th>Quinta</th>
+                        <th>Sexta</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoGrade"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card p-4" id="secaoPrioridades" style="display: none;">
+        <h4 class="step-title">Passo 5: Disciplinas/Eventos que usam Notebooks</h4>
+        <div class="row g-3 mb-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label fw-bold">Componente / Evento</label>
+                <select id="selectDisciplinaPrioridade" class="form-select"></select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Aulas/Semana</label>
+                <input type="number" id="aulasSemanaDisciplina" class="form-control" value="2" min="1">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Prioridade</label>
+                <select id="prioridadeDisciplina" class="form-select">
+                    <option value="0">Altíssima (0)</option>
+                    <option value="1" selected>Alta (1)</option>
+                    <option value="2">Média (2)</option>
+                    <option value="3">Baixa (3)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-success w-100 fw-bold" onclick="adicionarPrioridade()">Adicionar</button>
+            </div>
+        </div>
+        <ul id="listaPrioridades" class="list-group mb-3"></ul>
+    </div>
+
+    <div class="card p-4" id="secaoExportacao" style="display: none;">
+        <h4 class="step-title">Passo 6: Pré-visualização e Exportação</h4>
+        <button class="btn btn-primary btn-lg w-100 fw-bold shadow mb-4" onclick="gerarPreview()">Gerar Pré-visualização</button>
+        
+        <div id="areaPreview" class="d-none border rounded p-3 bg-white shadow-sm">
+            <h5 class="text-center fw-bold text-success mb-3">✅ Pré-visualização do Relatório</h5>
+            <div id="tabelasPreview"></div>
+            <hr>
+            <button class="btn btn-danger btn-lg w-100 fw-bold shadow mt-2" onclick="baixarPDF()">📄 Confirmar e Baixar PDF</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTutorial" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalTutorialLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold" id="modalTutorialLabel">📖 Como usar o Gerenciador de Equipamentos</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="lead">Bem-vindo(a) ao sistema inteligente de distribuição de notebooks.</p>
+        <ol class="list-group list-group-numbered">
+            <li class="list-group-item"><strong>Identificação (Passo 1):</strong> Insira o nome da sua escola para personalizar o arquivo e atualizar automaticamente o nome do salvamento.</li>
+            <li class="list-group-item"><strong>Configure os Carrinhos (Passo 2):</strong> Diga quantas estações você tem e os notebooks de cada uma.</li>
+            <li class="list-group-item"><strong>Crie a Escola (Passo 3):</strong> Selecione o modelo e quantidade de alunos em cada sala.</li>
+            <li class="list-group-item"><strong>Monte a Grade (Passo 4):</strong> Preencha o horário de aulas das turmas.</li>
+            <li class="list-group-item"><strong>Regras de Uso (Passo 5):</strong> Insira as disciplinas, a prioridade e a cota semanal.</li>
+            <li class="list-group-item"><strong>Visualizar e Salvar (Passo 6):</strong> Veja o resultado na tela e baixe o PDF. O algoritmo otimiza o uso do fim para o começo da semana!</li>
+        </ol>
+        <div class="mt-3 alert alert-info mb-0"><strong>Dica de Ouro:</strong> Salve seu progresso clicando em <strong>💾 Salvar</strong> no topo para não perder seus dados!</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary fw-bold" data-bs-dismiss="modal">Entendi, vamos começar!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    const diasIds = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+    const diasNomesPDF = { 'segunda': 'Segunda-feira', 'terca': 'Terça-feira', 'quarta': 'Quarta-feira', 'quinta': 'Quinta-feira', 'sexta': 'Sexta-feira' };
+
+    const componentesRaw = [
+        "Análise de Viabilidade de Negócios Agroindustriais", "ARTE", "Arte e Mídias Digitais", "BIOLOGIA", "Biotecnologia",
+        "CARREIRA EM ADMINISTRAÇÃO", "CARREIRA EM AGRONEGÓCIO", "CARREIRA EM DESENVOLVIMENTO DE SISTEMAS", "CARREIRA EM VENDAS",
+        "CIENCIAS", "COMPORTAMENTO E DIREITO DO CONSUMIDOR", "COMUNICAÇÃO E VENDAS", "Educação Financeira", "EDUCACAO FISICA",
+        "ELETIVAS", "Empreendedorismo", "ESPORTE-MÚSICA-ARTE", "FILOSOFIA", "Filosofia Moderna", "FISICA", "GEOGRAFIA", "Geopolítica",
+        "GESTÃO AMBIENTAL NO AGRONEGÓCIO", "Gestão de Cadeias Logísticas", "GESTÃO DE OPERAÇÕES", "GESTÃO DE PESSOAS",
+        "GESTAO FINANCEIRA E CONTABILIDADE", "HISTORIA", "INFORMÁTICA E LÓGICA DE PROGRAMAÇÃO", "INGLÊS", "INOVACAO E NEGOCIOS",
+        "INTRODUÇÃO À ADMINISTRAÇÃO", "INTRODUÇÃO AO AGRONEGÓCIO", "Liderança", "LINGUA INGLESA", "LINGUA PORTUGUESA",
+        "LÓGICA E PROGRAMAÇÃO", "MARKETING ESTRATEGICO", "MATEMATICA", "MATEMATICA APLICADA", "MATEMATICA E VENDAS", "Oratória",
+        "ORIENTAÇÃO DE ESTUDO – LÍNGUA PORTUGUESA", "ORIENTAÇÃO DE ESTUDO – MATEMÁTICA", "PLANEJAMENTO DE VENDAS", "PRATICAS EXPERIMENTAIS",
+        "PROCESSO COMERCIAL", "METODOLOGIAS ÁGEIS", "PRODUÇÃO AGROPECUÁRIA", "PROGRAMACAO", "PROJETO DE VIDA",
+        "PROJETO MULTIDISCIPLINAR", "QUIMICA", "Química Aplicada", "REDAÇÃO E LEITURA", "REDES E SEGURANÇA", "ROBOTICA",
+        "SOCIOLOGIA", "TECNOLOGIA E INOVACAO", "TECNOLOGIAS DIGITAIS"
+    ];
+    let componentes = [...new Set(componentesRaw)].sort();
+    componentes.unshift("PROVA EXTERNA");
+
+    let estacoes = [];
+    let turmas = [];
+    let numAulasDia = 9;
+    let prioridadesInfo = []; 
+    let dadosParaPDF = { dias: {}, auditoria: [] };
+
+    // Executado ao abrir a página
+    window.onload = () => {
+        gerarCamposEstacoes();
+        
+        // Alimenta o select do Passo 5
+        const select = document.getElementById('selectDisciplinaPrioridade');
+        select.innerHTML = '';
+        componentes.forEach(c => select.innerHTML += `<option value="${c}">${c}</option>`);
+
+        // Força a exibição do Tutorial Pop-up removendo travas de cache
+        const modalElement = document.getElementById('modalTutorial');
+        if (modalElement) {
+            const tutorialModal = new bootstrap.Modal(modalElement);
+            tutorialModal.show();
+        }
+    };
+
+    function abrirTutorial() {
+        const modalElement = document.getElementById('modalTutorial');
+        if(modalElement) {
+            const m = new bootstrap.Modal(modalElement);
+            m.show();
+        }
+    }
+
+    function atualizarNomeArquivoAutomatico(nomeEscola) {
+        let nomeSeguro = nomeEscola.trim().replace(/[\/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_');
+        document.getElementById('nomeArquivoJSON').value = nomeSeguro || "projeto_notebooks";
+    }
+
+    function gerarCamposEstacoes() {
+        const num = document.getElementById('numEstacoes').value;
+        const container = document.getElementById('containerEstacoes');
+        container.innerHTML = '';
+        for(let i = 1; i <= num; i++) {
+            container.innerHTML += `
+                <div class="col-md-3 bg-light p-3 border rounded">
+                    <label class="form-label fw-bold text-primary">Estação ${i}:</label>
+                    <input type="number" id="estacao_qtd_${i}" class="form-control mb-2 estacao-qtd" placeholder="Qtd Notebooks" value="30">
+                    <div class="form-check">
+                        <input class="form-check-input estacao-split" type="checkbox" id="estacao_split_${i}" checked>
+                        <label class="form-check-label small" for="estacao_split_${i}">Permitir dividir entre salas</label>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function lerEstacoes() {
+        estacoes = [];
+        document.querySelectorAll('.estacao-qtd').forEach((input, index) => {
+            const split = document.querySelectorAll('.estacao-split')[index].checked;
+            estacoes.push({ id: index + 1, qtd: parseInt(input.value), split: split });
+        });
+    }
+
+    function gerarCamposTurmas() {
+        const num = document.getElementById('numTurmas').value;
+        const container = document.getElementById('containerNomesTurmas');
+        container.innerHTML = '';
+        for(let i = 1; i <= num; i++) {
+            container.innerHTML += `
+                <div class="col-md-3 bg-white p-2 border rounded shadow-sm">
+                    <label class="form-label mb-0 small fw-bold">Turma ${i}</label>
+                    <input type="text" class="form-control form-control-sm mb-1 turma-nome" placeholder="Ex: 1ºA" value="Turma ${i}">
+                    <label class="form-label mb-0 small">Nº de Alunos:</label>
+                    <input type="number" class="form-control form-control-sm turma-alunos" min="1" value="35">
+                </div>
+            `;
+        }
+        document.getElementById('btnConfirmarTurmas').classList.remove('d-none');
+    }
+
+    function iniciarHorarios() {
+        numAulasDia = parseInt(document.getElementById('modeloEscola').value);
+        const nomes = document.querySelectorAll('.turma-nome');
+        const alunos = document.querySelectorAll('.turma-alunos');
+        turmas = [];
+        nomes.forEach((input, index) => {
+            let grade = {};
+            diasIds.forEach(diaId => { grade[diaId] = {}; for(let a=1; a<=numAulasDia; a++) grade[diaId][a] = ""; });
+            turmas.push({ id: index, nome: input.value, alunos: parseInt(alunos[index].value), grade: grade });
+        });
+        document.getElementById('secaoHorario').style.display = 'block';
+        document.getElementById('secaoPrioridades').style.display = 'block';
+        document.getElementById('secaoExportacao').style.display = 'block';
+        atualizarSeletorTurmas();
+        renderizarGradeTurma();
+    }
+
+    function atualizarSeletorTurmas() {
+        const seletor = document.getElementById('seletorTurmaGrade');
+        seletor.innerHTML = '';
+        turmas.forEach(t => seletor.innerHTML += `<option value="${t.id}">${t.nome} (${t.alunos} alunos)</option>`);
+    }
+
+    function renderizarGradeTurma() {
+        const turmaId = document.getElementById('seletorTurmaGrade').value;
+        if(turmaId === "") return;
+        const turma = turmas.find(t => t.id == turmaId);
+        const tbody = document.getElementById('corpoGrade');
+        tbody.innerHTML = '';
+        let optionsHtml = `<option value="">-- Vago --</option>`;
+        componentes.forEach(c => {
+            if(c === "PROVA EXTERNA") optionsHtml += `<option value="${c}" class="destaque-prova">${c}</option>`;
+            else optionsHtml += `<option value="${c}">${c}</option>`;
+        });
+        for(let aula = 1; aula <= numAulasDia; aula++) {
+            let tr = `<tr><td class="fw-bold bg-light">${aula}ª</td>`;
+            diasIds.forEach(diaId => {
+                tr += `<td><select class="form-select select-componente" id="sel_${turma.id}_${diaId}_${aula}" onchange="salvarCelula(${turma.id}, '${diaId}', ${aula}, this.value)">${optionsHtml}</select></td>`;
+            });
+            tr += `</tr>`;
+            tbody.innerHTML += tr;
+        }
+        for(let aula = 1; aula <= numAulasDia; aula++) {
+            diasIds.forEach(diaId => {
+                const val = turma.grade[diaId][aula];
+                if(val) document.getElementById(`sel_${turma.id}_${diaId}_${aula}`).value = val;
+            });
+        }
+    }
+
+    function salvarCelula(turmaId, diaId, aula, valor) {
+        turmas.find(t => t.id == turmaId).grade[diaId][aula] = valor;
+    }
+
+    function adicionarPrioridade() {
+        const nome = document.getElementById('selectDisciplinaPrioridade').value;
+        const aulasSemana = parseInt(document.getElementById('aulasSemanaDisciplina').value);
+        const prioridade = parseInt(document.getElementById('prioridadeDisciplina').value);
+        const index = prioridadesInfo.findIndex(p => p.nome === nome);
+        if(index > -1) prioridadesInfo.splice(index, 1); 
+        prioridadesInfo.push({ nome, prioridade, aulasSemana });
+        prioridadesInfo.sort((a, b) => a.prioridade - b.prioridade);
+        atualizarListaPrioridades();
+    }
+
+    function atualizarListaPrioridades() {
+        const fontLista = document.getElementById('listaPrioridades');
+        fontLista.innerHTML = '';
+        const labels = {0: 'Altíssima (0)', 1: 'Alta (1)', 2: 'Média (2)', 3: 'Baixa (3)'};
+        prioridadesInfo.forEach((p, i) => {
+            let classeProva = p.nome === "PROVA EXTERNA" ? "destaque-prova" : "";
+            fontLista.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                <div><strong class="${classeProva}">${p.nome}</strong> <br> <small class="text-muted">${p.aulasSemana} aula(s) por semana na mesma turma</small></div>
+                <div>
+                    <span class="badge bg-primary rounded-pill me-2">Prioridade: ${labels[p.prioridade]}</span>
+                    <button class="btn btn-sm btn-outline-danger" onclick="prioridadesInfo.splice(${i}, 1); atualizarListaPrioridades();">X</button>
+                </div>
+            </li>`;
+        });
+    }
+
+    function salvarDadosJSON() {
+        if(document.getElementById('secaoHorario').style.display !== 'block' && turmas.length === 0) lerEstacoes();
+        else lerEstacoes();
+        
+        let inputNome = document.getElementById('nomeArquivoJSON').value.trim();
+        if(!inputNome) inputNome = "projeto_notebooks"; 
+        let nomeArquivo = inputNome;
+        if (!nomeArquivo.endsWith('.json')) nomeArquivo += '.json';
+        
+        const nomeEscola = document.getElementById('nomeEscola').value;
+        const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({nomeEscola, numAulasDia, estacoes, turmas, prioridadesInfo}));
+        const a = document.createElement('a'); a.href = data; a.download = nomeArquivo;
+        document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    function carregarDadosJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        document.getElementById('nomeArquivoJSON').value = file.name.replace('.json', '');
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const app = JSON.parse(e.target.result);
+                numAulasDia = app.numAulasDia || 9; 
+                estacoes = app.estacoes || []; 
+                turmas = app.turmas || []; 
+                prioridadesInfo = app.prioridadesInfo || [];
+                
+                if(app.nomeEscola) {
+                    document.getElementById('nomeEscola').value = app.nomeEscola;
+                }
+
+                turmas.forEach(t => {
+                    if(t.grade && t.grade['Segunda']) {
+                        t.grade['segunda'] = t.grade['Segunda']; delete t.grade['Segunda'];
+                        t.grade['terca'] = t.grade['Terça']; delete t.grade['Terça'];
+                        t.grade['quarta'] = t.grade['Quarta']; delete t.grade['Quarta'];
+                        t.grade['quinta'] = t.grade['Quinta']; delete t.grade['Quinta'];
+                        t.grade['sexta'] = t.grade['Sexta']; delete t.grade['Sexta'];
+                    }
+                });
+
+                document.getElementById('modeloEscola').value = numAulasDia;
+                if(estacoes.length > 0) {
+                    document.getElementById('numEstacoes').value = estacoes.length;
+                    gerarCamposEstacoes();
+                    estacoes.forEach((es, i) => { 
+                        document.getElementById(`estacao_qtd_${i+1}`).value = es.qtd; 
+                        document.getElementById(`estacao_split_${i+1}`).checked = es.split; 
+                    });
+                }
+                
+                if(turmas.length > 0) {
+                    document.getElementById('numTurmas').value = turmas.length;
+                    gerarCamposTurmas();
+                    turmas.forEach((t, i) => { 
+                        document.querySelectorAll('.turma-nome')[i].value = t.nome;
+                        document.querySelectorAll('.turma-alunos')[i].value = t.alunos;
+                    });
+                    document.getElementById('secaoHorario').style.display = 'block';
+                    document.getElementById('secaoPrioridades').style.display = 'block';
+                    document.getElementById('secaoExportacao').style.display = 'block';
+                    atualizarSeletorTurmas(); renderizarGradeTurma(); 
+                }
+                atualizarListaPrioridades();
+                document.getElementById('arquivoJSON').value = ""; 
+            } catch(err) { alert("Erro ao carregar JSON. Verifique se o arquivo está correto."); }
+        };
+        reader.readAsText(file);
+    }
+
+    function gerarPreview() {
+        lerEstacoes();
+        if(estacoes.length === 0 || turmas.length === 0) return alert("Faltam dados para gerar a distribuição.");
+
+        let diasIdsReverso = [...diasIds].reverse(); 
+        let alocacoesFinais = [];
+        let contagemUso = {};
+
+        diasIdsReverso.forEach(diaId => {
+            for(let aula = numAulasDia; aula >= 1; aula--) {
+                let estAtual = estacoes.map(e => ({ id: e.id, qtd: e.qtd, disponivel: e.qtd, split: e.split, bloqueada: false }));
+                let demandas = [];
+                
+                turmas.forEach(turma => {
+                    const comp = turma.grade[diaId][aula];
+                    if(!comp) return;
+                    const regra = prioridadesInfo.find(p => p.nome === comp);
+                    if(regra) {
+                        const chaveUso = `${turma.id}_${comp}`;
+                        const usoAtual = contagemUso[chaveUso] || 0;
+                        if(usoAtual < regra.aulasSemana) {
+                            demandas.push({ turma, comp, prioridade: regra.prioridade, chaveUso, alunos: turma.alunos });
+                        }
+                    }
+                });
+
+                let alocacoesDestaAula = [];
+
+                [0, 1, 2, 3].forEach(prio => {
+                    let grupo = demandas.filter(d => d.prioridade === prio);
+                    if(grupo.length === 0) return;
+
+                    let alocacoesNestaRodada = [];
+                    grupo.sort((a, b) => b.alunos - a.alunos);
+
+                    grupo.forEach(dem => {
+                        let melhorEst = null;
+                        let maxRecebimento = 0;
+                        estAtual.forEach(est => {
+                            if(est.bloqueada || est.disponivel <= 0) return;
+                            let alocadosAqui = alocacoesNestaRodada.filter(a => a.estacao.id === est.id).length;
+                            if(!est.split && alocadosAqui > 0) return;
+                            let simulacao = Math.floor(est.disponivel / (alocadosAqui + 1));
+                            simulacao = Math.min(simulacao, dem.alunos);
+                            if(simulacao > maxRecebimento) { maxRecebimento = simulacao; melhorEst = est; }
+                        });
+                        if(melhorEst) alocacoesNestaRodada.push({dem, estacao: melhorEst, recebe: 0});
+                    });
+
+                    estAtual.forEach(est => {
+                        let alocadosAqui = alocacoesNestaRodada.filter(a => a.estacao.id === est.id);
+                        if(alocadosAqui.length === 0) return;
+                        let totalAlunosPedindo = alocadosAqui.reduce((soma, a) => soma + a.dem.alunos, 0);
+
+                        if(totalAlunosPedindo <= est.disponivel) {
+                            alocadosAqui.forEach(a => { a.recebe = a.dem.alunos; est.disponivel -= a.recebe; });
+                        } else {
+                            let notesRestantes = est.disponivel;
+                            let pendentes = [...alocadosAqui];
+                            while(pendentes.length > 0 && notesRestantes > 0) {
+                                let fatia = Math.floor(notesRestantes / pendentes.length);
+                                if(fatia === 0) fatia = 1; 
+                                for(let i = pendentes.length - 1; i >= 0; i--) {
+                                    let p = pendentes[i];
+                                    let entregar = Math.min(fatia, p.dem.alunos - p.recebe, notesRestantes);
+                                    p.recebe += entregar;
+                                    notesRestantes -= entregar;
+                                    if(p.recebe === p.dem.alunos) pendentes.splice(i, 1); 
+                                    if(notesRestantes === 0) break;
+                                }
+                            }
+                            est.disponivel = notesRestantes;
+                        }
+                        if(!est.split || est.disponivel <= 0) est.bloqueada = true;
+                    });
+
+                    alocacoesNestaRodada.forEach(a => { if(a.recebe > 0) alocacoesDestaAula.push(a); });
+                });
+
+                alocacoesDestaAula.forEach(a => {
+                    contagemUso[a.dem.chaveUso] = (contagemUso[a.dem.chaveUso] || 0) + 1;
+                    let parceiros = alocacoesDestaAula.filter(x => x.estacao.id === a.estacao.id && x.dem.turma.nome !== a.dem.turma.nome);
+                    let msg = `Est. ${a.estacao.id} (${a.recebe} notes)`;
+                    
+                    if(parceiros.length > 0) {
+                        let desc = parceiros.map(p => `${p.dem.turma.nome}: ${p.recebe}`).join(', ');
+                        msg += ` -> Dividiu c/ ${desc}`;
+                    }
+                    if(a.recebe < a.dem.alunos) msg += ` (Faltam ${a.dem.alunos - a.recebe})`;
+                    
+                    alocacoesFinais.push({
+                        diaId: diaId, aula: aula, turmaNome: a.dem.turma.nome, alunos: a.dem.alunos, comp: a.dem.comp, msg: msg
+                    });
+                });
+            }
+        });
+
+        alocacoesFinais.sort((a, b) => {
+            let diaDiff = diasIds.indexOf(a.diaId) - diasIds.indexOf(b.diaId);
+            if(diaDiff !== 0) return diaDiff;
+            return a.aula - b.aula;
+        });
+
+        let naoContemplados = [];
+        turmas.forEach(turma => {
+            prioridadesInfo.forEach(regra => {
+                let ocorrenciasNaGrade = 0;
+                diasIds.forEach(d => {
+                    for(let a = 1; a <= numAulasDia; a++) if(turma.grade[d][a] === regra.nome) ocorrenciasNaGrade++;
+                });
+
+                if(ocorrenciasNaGrade > 0) {
+                    const chaveUso = `${turma.id}_${regra.nome}`;
+                    const usoReal = contagemUso[chaveUso] || 0;
+                    const metaJusta = Math.min(regra.aulasSemana, ocorrenciasNaGrade);
+                    if(usoReal < metaJusta) {
+                        naoContemplados.push([turma.nome, regra.nome, `${metaJusta} aula(s)`, `${usoReal} aula(s)`]);
+                    }
+                }
+            });
+        });
+
+        dadosParaPDF.dias = {};
+        dadosParaPDF.auditoria = naoContemplados.sort((a, b) => a[0].localeCompare(b[0]));
+        
+        let htmlPreview = '';
+        diasIds.forEach(diaId => {
+            let linhasDoDia = alocacoesFinais.filter(aloc => aloc.diaId === diaId).map(aloc => [`${aloc.aula}ª Aula`, aloc.turmaNome, aloc.alunos, aloc.comp, aloc.msg]);
+            
+            if(linhasDoDia.length > 0) {
+                dadosParaPDF.dias[diaId] = linhasDoDia;
+                htmlPreview += `<h5 class="mt-4 text-primary fw-bold">>> ${diasNomesPDF[diaId]}</h5>`;
+                htmlPreview += `<div class="table-responsive"><table class="table table-bordered table-striped table-sm text-center align-middle">`;
+                htmlPreview += `<thead class="table-dark"><tr><th>Aula</th><th>Turma</th><th>Alunos</th><th>Disciplina</th><th>Alocação do Equipamento</th></tr></thead><tbody>`;
+                
+                linhasDoDia.forEach(linha => {
+                    let badgeClass = '';
+                    if(linha[4].includes("Dividiu c/")) badgeClass = 'text-purple fw-bold';
+                    else if(linha[4].includes("Faltam")) badgeClass = 'text-orange fw-bold';
+                    htmlPreview += `<tr><td>${linha[0]}</td><td>${linha[1]}</td><td>${linha[2]}</td><td>${linha[3]}</td><td class="${badgeClass}">${linha[4]}</td></tr>`;
+                });
+                htmlPreview += `</tbody></table></div>`;
+            }
+        });
+
+        if(htmlPreview === '') {
+            return alert("Nenhuma distribuição foi gerada. Verifique as configurações.");
+        }
+
+        if(dadosParaPDF.auditoria.length > 0) {
+            htmlPreview += `<h5 class="mt-5 text-danger fw-bold">⚠️ Auditoria: Turmas com Déficit</h5>`;
+            htmlPreview += `<div class="table-responsive"><table class="table table-bordered table-sm text-center">`;
+            htmlPreview += `<thead class="table-danger"><tr><th>Turma</th><th>Disciplina</th><th>Meta</th><th>Atendido</th></tr></thead><tbody>`;
+            dadosParaPDF.auditoria.forEach(linha => {
+                htmlPreview += `<tr><td>${linha[0]}</td><td>${linha[1]}</td><td>${linha[2]}</td><td class="text-danger fw-bold">${linha[3]}</td></tr>`;
+            });
+            htmlPreview += `</tbody></table></div>`;
+        }
+
+        document.getElementById('tabelasPreview').innerHTML = htmlPreview;
+        document.getElementById('areaPreview').classList.remove('d-none');
+    }
+
+    function baixarPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        const nomeEscola = document.getElementById('nomeEscola').value.trim();
+
+        doc.setFontSize(16); doc.text("Relatório de Distribuição Otimizada de Notebooks", 14, 15);
+        
+        let finalY = 28;
+        if(nomeEscola) {
+            doc.setFontSize(12); doc.setTextColor(100, 100, 100);
+            doc.text(`Unidade: ${nomeEscola}`, 14, 21);
+            doc.setFontSize(10); doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 27);
+            finalY = 34;
+        } else {
+            doc.setFontSize(10); doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 21);
+            finalY = 28;
+        }
+
+        diasIds.forEach(diaId => {
+            if(dadosParaPDF.dias[diaId]) {
+                if (finalY > 175) { doc.addPage(); finalY = 20; }
+                doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(41, 128, 185);
+                doc.text(`>> ${diasNomesPDF[diaId]}`, 14, finalY);
+                
+                doc.autoTable({
+                    startY: finalY + 4,
+                    head: [['Aula', 'Turma', 'Alunos', 'Disciplina', 'Alocação do Equipamento']],
+                    body: dadosParaPDF.dias[diaId],
+                    theme: 'grid',
+                    headStyles: { fillColor: [52, 58, 64], textColor: 255 }, 
+                    styles: { fontSize: 10 },
+                    didParseCell: function(data) {
+                        if (data.section === 'body' && data.column.index === 4) {
+                            if(data.cell.raw.includes("Dividiu c/")) {
+                                data.cell.styles.textColor = [139, 0, 139]; 
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if(data.cell.raw.includes("Faltam")) {
+                                data.cell.styles.textColor = [253, 126, 20]; 
+                                data.cell.styles.fontStyle = 'bold';
+                            }
+                        }
+                    }
+                });
+                finalY = doc.lastAutoTable.finalY + 15; 
+            }
+        });
+
+        if(dadosParaPDF.auditoria.length > 0) {
+            doc.addPage();
+            doc.setFontSize(16); doc.setTextColor(220, 53, 69); 
+            doc.text("Auditoria: Turmas c/ Déficit de Equipamentos", 14, 20);
+            doc.setFontSize(10); doc.setTextColor(100, 100, 100);
+            doc.text("As turmas listadas não conseguiram usar o notebook na quantidade de vezes solicitada devido à lotação.", 14, 26);
+
+            doc.autoTable({
+                startY: 32,
+                head: [['Turma', 'Disciplina/Evento', 'Meta Solicitada', 'Qtd. Aulas Atendida']],
+                body: dadosParaPDF.auditoria,
+                theme: 'grid',
+                headStyles: { fillColor: [220, 53, 69], textColor: 255 },
+                styles: { fontSize: 10 }
+            });
+        }
+
+        let nomeArquivoFinal = document.getElementById('nomeArquivoJSON').value.trim() || "relatorio_notebooks";
+        doc.save(`${nomeArquivoFinal}.pdf`);
+    }
+</script>
+</body>
+</html>
