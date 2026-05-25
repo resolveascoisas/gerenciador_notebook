@@ -120,7 +120,7 @@
     <div class="card p-4" id="secaoPrioridades" style="display: none;">
         <h4 class="step-title">Passo 5: Disciplinas/Eventos que usam Notebooks</h4>
         <div class="row g-3 mb-3 align-items-end">
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <label class="form-label fw-bold">Componente / Evento</label>
                 <select id="selectDisciplinaPrioridade" class="form-select"></select>
             </div>
@@ -128,7 +128,7 @@
                 <label class="form-label fw-bold">Aulas/Semana</label>
                 <input type="number" id="aulasSemanaDisciplina" class="form-control" value="2" min="1">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label fw-bold">Prioridade</label>
                 <select id="prioridadeDisciplina" class="form-select">
                     <option value="0">Altíssima (0)</option>
@@ -137,33 +137,36 @@
                     <option value="3">Baixa (3)</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <button class="btn btn-success w-100 fw-bold" onclick="adicionarPrioridade()">Adicionar</button>
+            <div class="col-md-4">
+                <label class="form-label fw-bold d-block" title="Marque os dias que você prefere que essa aula use os equipamentos">Dias Preferenciais (Opcional)</label>
+                <div class="btn-group w-100" role="group">
+                    <input type="checkbox" class="btn-check pref-dia" id="pref_seg" value="segunda" autocomplete="off">
+                    <label class="btn btn-outline-primary btn-sm" for="pref_seg">Seg</label>
+
+                    <input type="checkbox" class="btn-check pref-dia" id="pref_ter" value="terca" autocomplete="off">
+                    <label class="btn btn-outline-primary btn-sm" for="pref_ter">Ter</label>
+
+                    <input type="checkbox" class="btn-check pref-dia" id="pref_qua" value="quarta" autocomplete="off">
+                    <label class="btn btn-outline-primary btn-sm" for="pref_qua">Qua</label>
+
+                    <input type="checkbox" class="btn-check pref-dia" id="pref_qui" value="quinta" autocomplete="off">
+                    <label class="btn btn-outline-primary btn-sm" for="pref_qui">Qui</label>
+
+                    <input type="checkbox" class="btn-check pref-dia" id="pref_sex" value="sexta" autocomplete="off">
+                    <label class="btn btn-outline-primary btn-sm" for="pref_sex">Sex</label>
+                </div>
+            </div>
+            <div class="col-12 mt-3 d-flex justify-content-end">
+                <button class="btn btn-success fw-bold px-5" onclick="adicionarPrioridade()">Adicionar à Lista</button>
             </div>
         </div>
-        <ul id="listaPrioridades" class="list-group mb-3"></ul>
+        <ul id="listaPrioridades" class="list-group mb-3 mt-3"></ul>
     </div>
 
     <div class="card p-4" id="secaoExportacao" style="display: none;">
-        <h4 class="step-title">Passo 6: Preferências e Geração do Relatório</h4>
+        <h4 class="step-title">Passo 6: Pré-visualização e Exportação</h4>
         
-        <div class="row align-items-center mb-4 p-3 bg-light border rounded">
-            <div class="col-md-7">
-                <label class="form-label fw-bold text-primary">Deseja priorizar as máquinas em algum dia da semana?</label>
-                <select id="diaPrioridade" class="form-select border-primary">
-                    <option value="nenhum">Não, usar otimização padrão (Evitar conflitos)</option>
-                    <option value="segunda">Sim, priorizar Segunda-feira</option>
-                    <option value="terca">Sim, priorizar Terça-feira</option>
-                    <option value="quarta">Sim, priorizar Quarta-feira</option>
-                    <option value="quinta">Sim, priorizar Quinta-feira</option>
-                    <option value="sexta">Sim, priorizar Sexta-feira</option>
-                </select>
-                <small class="text-muted d-block mt-1">O sistema focará em entregar o equipamento neste dia primeiro, ignorando lotação.</small>
-            </div>
-            <div class="col-md-5 d-flex align-items-end mt-3 mt-md-0">
-                <button class="btn btn-primary btn-lg w-100 fw-bold shadow" onclick="gerarPreview()">👁️ Gerar Pré-visualização</button>
-            </div>
-        </div>
+        <button class="btn btn-primary btn-lg w-100 fw-bold shadow mb-4" onclick="gerarPreview()">👁️ Gerar Pré-visualização na Tela</button>
         
         <div id="areaPreview" class="d-none border rounded p-3 bg-white shadow-sm">
             <h5 class="text-center fw-bold text-success mb-3">✅ Pré-visualização do Relatório</h5>
@@ -188,8 +191,8 @@
             <li class="list-group-item"><strong>Configure os Carrinhos:</strong> Diga quantas estações você tem e os notes de cada uma.</li>
             <li class="list-group-item"><strong>Crie a Escola:</strong> Selecione o modelo e quantidade de alunos em cada sala.</li>
             <li class="list-group-item"><strong>Monte a Grade:</strong> Preencha o horário de aulas das turmas.</li>
-            <li class="list-group-item"><strong>Regras de Uso:</strong> Insira as disciplinas, a prioridade e a cota semanal.</li>
-            <li class="list-group-item"><strong>Visualizar e Salvar:</strong> Escolha se quer priorizar algum dia de uso na semana, visualize a tabela inteligente e baixe seu PDF final!</li>
+            <li class="list-group-item"><strong>Regras de Uso:</strong> Insira as disciplinas e a cota. <strong>NOVIDADE:</strong> Agora você pode marcar os dias da semana em que prefere que essa disciplina use o notebook!</li>
+            <li class="list-group-item"><strong>Visualizar e Salvar:</strong> Veja a tabela inteligente gerada na tela e baixe seu PDF final!</li>
         </ol>
         <div class="mt-3 alert alert-info mb-0"><strong>Dica de Ouro:</strong> Salve seu progresso clicando em <strong>💾 Salvar</strong> no topo para não perder seus dados na semana seguinte!</div>
       </div>
@@ -237,9 +240,9 @@
         const modalElement = document.getElementById('modalTutorial');
         if (modalElement) {
             const tutorialModal = new bootstrap.Modal(modalElement);
-            if (!localStorage.getItem('tutorialNotebooksVisto2')) { // Atualizado para mostrar novamente a nova opção
+            if (!localStorage.getItem('tutorialNotebooksVisto3')) {
                 tutorialModal.show();
-                localStorage.setItem('tutorialNotebooksVisto2', 'true');
+                localStorage.setItem('tutorialNotebooksVisto3', 'true');
             }
         }
     };
@@ -355,10 +358,19 @@
         const nome = document.getElementById('selectDisciplinaPrioridade').value;
         const aulasSemana = parseInt(document.getElementById('aulasSemanaDisciplina').value);
         const prioridade = parseInt(document.getElementById('prioridadeDisciplina').value);
+        
+        // Pega os dias marcados
+        let diasPref = Array.from(document.querySelectorAll('.pref-dia:checked')).map(cb => cb.value);
+
         const index = prioridadesInfo.findIndex(p => p.nome === nome);
         if(index > -1) prioridadesInfo.splice(index, 1); 
-        prioridadesInfo.push({ nome, prioridade, aulasSemana });
+        
+        prioridadesInfo.push({ nome, prioridade, aulasSemana, diasPref });
         prioridadesInfo.sort((a, b) => a.prioridade - b.prioridade);
+        
+        // Limpa checkboxes para a próxima
+        document.querySelectorAll('.pref-dia').forEach(cb => cb.checked = false);
+        
         atualizarListaPrioridades();
     }
 
@@ -366,12 +378,17 @@
         const fontLista = document.getElementById('listaPrioridades');
         fontLista.innerHTML = '';
         const labels = {0: 'Altíssima (0)', 1: 'Alta (1)', 2: 'Média (2)', 3: 'Baixa (3)'};
+        
         prioridadesInfo.forEach((p, i) => {
             let classeProva = p.nome === "PROVA EXTERNA" ? "destaque-prova" : "";
+            let txtDias = p.diasPref && p.diasPref.length > 0 
+                ? `<span class="badge bg-secondary ms-2">Preferência: ${p.diasPref.map(d=>d.substring(0,3).toUpperCase()).join(', ')}</span>` 
+                : "";
+
             fontLista.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
-                <div><strong class="${classeProva}">${p.nome}</strong> <br> <small class="text-muted">${p.aulasSemana} aula(s) por semana na mesma turma</small></div>
+                <div><strong class="${classeProva}">${p.nome}</strong> ${txtDias}<br> <small class="text-muted">${p.aulasSemana} aula(s) por semana na mesma turma</small></div>
                 <div>
-                    <span class="badge bg-primary rounded-pill me-2">Prioridade: ${labels[p.prioridade]}</span>
+                    <span class="badge bg-primary rounded-pill me-2">Pri: ${labels[p.prioridade]}</span>
                     <button class="btn btn-sm btn-outline-danger" onclick="prioridadesInfo.splice(${i}, 1); atualizarListaPrioridades();">X</button>
                 </div>
             </li>`;
@@ -388,9 +405,7 @@
         if (!nomeArquivo.endsWith('.json')) nomeArquivo += '.json';
         
         const nomeEscola = document.getElementById('nomeEscola').value;
-        const diaPrio = document.getElementById('diaPrioridade') ? document.getElementById('diaPrioridade').value : 'nenhum';
-        
-        const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({nomeEscola, numAulasDia, estacoes, turmas, prioridadesInfo, diaPrioridade: diaPrio}));
+        const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({nomeEscola, numAulasDia, estacoes, turmas, prioridadesInfo}));
         const a = document.createElement('a'); a.href = data; a.download = nomeArquivo;
         document.body.appendChild(a); a.click(); a.remove();
     }
@@ -408,8 +423,10 @@
                 turmas = app.turmas || []; 
                 prioridadesInfo = app.prioridadesInfo || [];
                 
+                // Trata JSONs antigos que não tinham diasPref
+                prioridadesInfo.forEach(p => { p.diasPref = p.diasPref || []; });
+
                 if(app.nomeEscola) document.getElementById('nomeEscola').value = app.nomeEscola;
-                if(app.diaPrioridade && document.getElementById('diaPrioridade')) document.getElementById('diaPrioridade').value = app.diaPrioridade;
 
                 turmas.forEach(t => {
                     if(t.grade && t.grade['Segunda']) {
@@ -454,7 +471,6 @@
         lerEstacoes();
         if(estacoes.length === 0 || turmas.length === 0) return alert("Faltam dados para gerar a distribuição.");
 
-        let diaPriorizado = document.getElementById('diaPrioridade').value;
         let concorrenciaPorHorario = {}; 
         
         // Mapeia concorrência
@@ -486,17 +502,18 @@
                     }
                 });
 
-                // Ordenação inteligente: Dia Priorizado > Menor Concorrência > Fim de semana
+                // Ordenação com a nova inteligência de Dias Preferenciais Individuais
                 ocorrencias.sort((a, b) => {
-                    if (diaPriorizado !== 'nenhum') {
-                        let aPrio = a.diaId === diaPriorizado;
-                        let bPrio = b.diaId === diaPriorizado;
-                        if (aPrio && !bPrio) return -1;
-                        if (!aPrio && bPrio) return 1;
-                    }
-                    if(a.concorrencia !== b.concorrencia) return a.concorrencia - b.concorrencia;
-                    let diaDiff = diasIds.indexOf(a.diaId) - diasIds.indexOf(b.diaId);
+                    let prefA = (regra.diasPref && regra.diasPref.includes(a.diaId)) ? 1 : 0;
+                    let prefB = (regra.diasPref && regra.diasPref.includes(b.diaId)) ? 1 : 0;
+
+                    if (prefA !== prefB) return prefB - prefA; // Dias preferidos vêm primeiro
+                    
+                    if (a.concorrencia !== b.concorrencia) return a.concorrencia - b.concorrencia; // Depois menor concorrência
+                    
+                    let diaDiff = diasIds.indexOf(b.diaId) - diasIds.indexOf(a.diaId); // Fim de semana tem peso maior
                     if(diaDiff !== 0) return diaDiff;
+                    
                     return a.aula - b.aula;
                 });
 
@@ -505,13 +522,7 @@
             });
         });
 
-        // Ordem do Motor: Processa primeiro o Dia Priorizado, depois o resto de trás pra frente
-        let diasParaProcessar = [...diasIds].reverse();
-        if (diaPriorizado !== 'nenhum') {
-            diasParaProcessar = diasParaProcessar.filter(d => d !== diaPriorizado);
-            diasParaProcessar.unshift(diaPriorizado);
-        }
-
+        let diasParaProcessar = [...diasIds].reverse(); // Processa de sexta para segunda
         let alocacoesFinais = [];
         let contagemUso = {};
 
