@@ -171,7 +171,23 @@
     <div class="card p-4" id="secaoExportacao" style="display: none;">
         <h4 class="step-title">Passo 6: Pré-visualização e Exportação</h4>
         
-        <button class="btn btn-primary btn-lg w-100 fw-bold shadow mb-4" onclick="gerarPreview()">👁️ Gerar Pré-visualização na Tela</button>
+        <div class="row align-items-center mb-4 p-3 bg-light border rounded">
+            <div class="col-md-7">
+                <label class="form-label fw-bold text-primary">Deseja priorizar as máquinas em algum dia da semana para a escola toda?</label>
+                <select id="diaPrioridade" class="form-select border-primary">
+                    <option value="nenhum">Não, usar otimização padrão (Evitar conflitos)</option>
+                    <option value="segunda">Sim, priorizar Segunda-feira</option>
+                    <option value="terca">Sim, priorizar Terça-feira</option>
+                    <option value="quarta">Sim, priorizar Quarta-feira</option>
+                    <option value="quinta">Sim, priorizar Quinta-feira</option>
+                    <option value="sexta">Sim, priorizar Sexta-feira</option>
+                </select>
+                <small class="text-muted d-block mt-1">O sistema focará em entregar o equipamento neste dia primeiro, ignorando a lotação geral.</small>
+            </div>
+            <div class="col-md-5 d-flex align-items-end mt-3 mt-md-0">
+                <button class="btn btn-primary btn-lg w-100 fw-bold shadow" onclick="gerarPreview()">👁️ Gerar Pré-visualização</button>
+            </div>
+        </div>
         
         <div id="areaPreview" class="d-none border rounded p-3 bg-white shadow-sm">
             <h5 class="text-center fw-bold text-success mb-3">✅ Pré-visualização do Relatório</h5>
@@ -192,13 +208,13 @@
       <div class="modal-body">
         <p class="lead">Bem-vindo(a) ao sistema inteligente de distribuição de notebooks.</p>
         <ol class="list-group list-group-numbered">
-            <li class="list-group-item"><strong>Identificação:</strong> Insira o nome da escola para o título do arquivo. O sistema agora possui <strong>salvamento automático</strong>!</li>
+            <li class="list-group-item"><strong>Identificação:</strong> Insira o nome da escola para o título do arquivo. O sistema possui <strong>salvamento automático</strong>!</li>
             <li class="list-group-item"><strong>Configure os Carrinhos:</strong> Diga quantas estações você tem e os notes de cada uma.</li>
             <li class="list-group-item"><strong>Crie a Escola:</strong> Selecione o modelo e quantidade de alunos em cada sala.</li>
             <li class="list-group-item"><strong>Monte a Grade:</strong> Preencha o horário de aulas das turmas.</li>
-            <li class="list-group-item"><strong>Regras de Uso:</strong> Insira as disciplinas e a cota. Marque os dias da semana de preferência de cada matéria.</li>
+            <li class="list-group-item"><strong>Regras de Uso:</strong> Insira as disciplinas, a cota e os dias da semana de preferência de cada matéria.</li>
             <li class="list-group-item"><strong>Visualizar e Salvar:</strong> Veja a tabela na tela e baixe seu PDF final.</li>
-            <li class="list-group-item"><strong>Salvamento automático no navegador:</strong> Os dados ficam salvos no navegador temporariamente, porém salve o arquivo json para backup.</li>
+            <li class="list-group-item"><strong>Salvamento no navegador:</strong> Os dados ficam salvos temporariamente, porém sempre salve o arquivo JSON para backup oficial.</li>
         </ol>
         <div class="mt-3 alert alert-info mb-0"><strong>Importante:</strong> Para reiniciar a distribuição do zero, clique em <strong>🗑️ Novo</strong> no topo da página.</div>
       </div>
@@ -241,28 +257,26 @@
         select.innerHTML = '';
         componentes.forEach(c => select.innerHTML += `<option value="${c}">${c}</option>`);
 
-        // TENTA RECUPERAR O AUTO-SAVE DO NAVEGADOR
         const autoSave = localStorage.getItem('notebookAppAutoSave');
         if (autoSave) {
             try {
                 restaurarEstadoApp(JSON.parse(autoSave));
             } catch(e) {
-                gerarCamposEstacoes(); // Falha no JSON, inicializa vazio
+                gerarCamposEstacoes(); 
             }
         } else {
-            gerarCamposEstacoes(); // Primeiro acesso, inicializa vazio
+            gerarCamposEstacoes(); 
         }
 
         const modalElement = document.getElementById('modalTutorial');
         if (modalElement) {
             const tutorialModal = new bootstrap.Modal(modalElement);
-            if (!localStorage.getItem('tutorialNotebooksVisto4')) {
+            if (!localStorage.getItem('tutorialNotebooksVisto5')) {
                 tutorialModal.show();
-                localStorage.setItem('tutorialNotebooksVisto4', 'true');
+                localStorage.setItem('tutorialNotebooksVisto5', 'true');
             }
         }
 
-        // Inicia a rotina fantasma de salvamento automático a cada 2 segundos
         setInterval(salvarNoLocalStorage, 2000);
     };
 
@@ -271,7 +285,6 @@
         if(modalElement) new bootstrap.Modal(modalElement).show();
     }
 
-    // Função que limpa o LocalStorage e reinicia
     function limparDadosLocalStorage() {
         if(confirm("Tem certeza que deseja APAGAR TODOS OS DADOS atuais e começar um novo projeto do zero?")) {
             localStorage.removeItem('notebookAppAutoSave');
@@ -279,13 +292,11 @@
         }
     }
 
-    // Função interna que salva o estado atual no navegador invisivelmente
     function salvarNoLocalStorage() {
         try {
             if(!document.getElementById('numEstacoes')) return;
             lerEstacoes();
             
-            // Se as turmas já estiverem renderizadas, atualiza os nomes caso o usuário esteja digitando
             if (document.getElementById('secaoHorario').style.display === 'block') {
                 const nomes = document.querySelectorAll('.turma-nome');
                 const alunos = document.querySelectorAll('.turma-alunos');
@@ -303,6 +314,7 @@
                 numAulasDia: parseInt(document.getElementById('modeloEscola').value),
                 numEstacoesInput: document.getElementById('numEstacoes').value,
                 numTurmasInput: document.getElementById('numTurmas').value,
+                diaPrioridade: document.getElementById('diaPrioridade') ? document.getElementById('diaPrioridade').value : 'nenhum',
                 estacoes: estacoes,
                 turmas: turmas,
                 prioridadesInfo: prioridadesInfo
@@ -323,12 +335,13 @@
 
         if(app.nomeEscola) document.getElementById('nomeEscola').value = app.nomeEscola;
         if(app.nomeArquivoJSON) document.getElementById('nomeArquivoJSON').value = app.nomeArquivoJSON;
-        if(app.numEstacoesInput) document.getElementById('numEstacoes').value = app.numEstacoesInput;
-        if(app.numTurmasInput) document.getElementById('numTurmas').value = app.numTurmasInput;
+        if(app.diaPrioridade && document.getElementById('diaPrioridade')) document.getElementById('diaPrioridade').value = app.diaPrioridade;
 
+        // O CORAÇÃO DA CORREÇÃO: Respeita o tamanho real das arrays no arquivo!
+        document.getElementById('numEstacoes').value = estacoes.length > 0 ? estacoes.length : (app.numEstacoesInput || 1);
+        document.getElementById('numTurmas').value = turmas.length > 0 ? turmas.length : (app.numTurmasInput || 1);
         document.getElementById('modeloEscola').value = numAulasDia;
 
-        // Migrar grades antigas
         turmas.forEach(t => {
             if(t.grade && t.grade['Segunda']) {
                 t.grade['segunda'] = t.grade['Segunda']; delete t.grade['Segunda'];
@@ -339,7 +352,6 @@
             }
         });
 
-        // Restaura estações
         if(estacoes.length > 0) {
             gerarCamposEstacoes();
             estacoes.forEach((es, i) => { 
@@ -352,7 +364,6 @@
             gerarCamposEstacoes();
         }
         
-        // Restaura turmas e grade
         if(turmas.length > 0) {
             gerarCamposTurmas();
             turmas.forEach((t, i) => { 
@@ -515,23 +526,46 @@
         });
     }
 
-    // SALVAMENTO EM ARQUIVO JSON (Mantido intacto)
     function salvarDadosJSON() {
         if(document.getElementById('secaoHorario').style.display !== 'block' && turmas.length === 0) lerEstacoes();
         else lerEstacoes();
         
+        if (document.getElementById('secaoHorario').style.display === 'block') {
+            const nomes = document.querySelectorAll('.turma-nome');
+            const alunos = document.querySelectorAll('.turma-alunos');
+            nomes.forEach((input, index) => {
+                if(turmas[index]) {
+                    turmas[index].nome = input.value;
+                    turmas[index].alunos = parseInt(alunos[index].value);
+                }
+            });
+        }
+
         let inputNome = document.getElementById('nomeArquivoJSON').value.trim();
         if(!inputNome) inputNome = "projeto_notebooks"; 
         let nomeArquivo = inputNome;
         if (!nomeArquivo.endsWith('.json')) nomeArquivo += '.json';
         
         const nomeEscola = document.getElementById('nomeEscola').value;
-        const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({nomeEscola, numAulasDia, estacoes, turmas, prioridadesInfo}));
-        const a = document.createElement('a'); a.href = data; a.download = nomeArquivo;
+        const diaPrio = document.getElementById('diaPrioridade') ? document.getElementById('diaPrioridade').value : 'nenhum';
+        
+        const data = {
+            nomeEscola: nomeEscola,
+            nomeArquivoJSON: inputNome,
+            numAulasDia: parseInt(document.getElementById('modeloEscola').value),
+            numEstacoesInput: document.getElementById('numEstacoes').value,
+            numTurmasInput: document.getElementById('numTurmas').value,
+            diaPrioridade: diaPrio,
+            estacoes: estacoes,
+            turmas: turmas,
+            prioridadesInfo: prioridadesInfo
+        };
+        
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+        const a = document.createElement('a'); a.href = dataStr; a.download = nomeArquivo;
         document.body.appendChild(a); a.click(); a.remove();
     }
 
-    // CARREGAMENTO DE ARQUIVO JSON
     function carregarDadosJSON(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -542,7 +576,7 @@
                 const app = JSON.parse(e.target.result);
                 restaurarEstadoApp(app);
                 document.getElementById('arquivoJSON').value = ""; 
-                salvarNoLocalStorage(); // Força salvamento na memória após carregar o arquivo
+                salvarNoLocalStorage(); 
             } catch(err) { alert("Erro ao carregar JSON. Verifique se o arquivo está correto."); }
         };
         reader.readAsText(file);
@@ -552,7 +586,9 @@
         lerEstacoes();
         if(estacoes.length === 0 || turmas.length === 0) return alert("Faltam dados para gerar a distribuição.");
 
+        let diaPriorizado = document.getElementById('diaPrioridade') ? document.getElementById('diaPrioridade').value : 'nenhum';
         let concorrenciaPorHorario = {}; 
+        
         diasIds.forEach(diaId => {
             for(let aula = 1; aula <= numAulasDia; aula++) {
                 let count = 0;
@@ -582,6 +618,13 @@
                 });
 
                 ocorrencias.sort((a, b) => {
+                    if (diaPriorizado !== 'nenhum') {
+                        let aPrioGlobal = a.diaId === diaPriorizado;
+                        let bPrioGlobal = b.diaId === diaPriorizado;
+                        if (aPrioGlobal && !bPrioGlobal) return -1;
+                        if (!aPrioGlobal && bPrioGlobal) return 1;
+                    }
+
                     let prefA = (regra.diasPref && regra.diasPref.includes(a.diaId)) ? 1 : 0;
                     let prefB = (regra.diasPref && regra.diasPref.includes(b.diaId)) ? 1 : 0;
 
@@ -600,6 +643,11 @@
         });
 
         let diasParaProcessar = [...diasIds].reverse(); 
+        if (diaPriorizado !== 'nenhum') {
+            diasParaProcessar = diasParaProcessar.filter(d => d !== diaPriorizado);
+            diasParaProcessar.unshift(diaPriorizado);
+        }
+
         let alocacoesFinais = [];
         let contagemUso = {};
 
