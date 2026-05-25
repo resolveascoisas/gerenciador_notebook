@@ -171,23 +171,7 @@
     <div class="card p-4" id="secaoExportacao" style="display: none;">
         <h4 class="step-title">Passo 6: Pré-visualização e Exportação</h4>
         
-        <div class="row align-items-center mb-4 p-3 bg-light border rounded">
-            <div class="col-md-7">
-                <label class="form-label fw-bold text-primary">Deseja priorizar as máquinas em algum dia da semana para a escola toda?</label>
-                <select id="diaPrioridade" class="form-select border-primary">
-                    <option value="nenhum">Não, usar otimização padrão (Evitar conflitos)</option>
-                    <option value="segunda">Sim, priorizar Segunda-feira</option>
-                    <option value="terca">Sim, priorizar Terça-feira</option>
-                    <option value="quarta">Sim, priorizar Quarta-feira</option>
-                    <option value="quinta">Sim, priorizar Quinta-feira</option>
-                    <option value="sexta">Sim, priorizar Sexta-feira</option>
-                </select>
-                <small class="text-muted d-block mt-1">O sistema focará em entregar o equipamento neste dia primeiro, ignorando a lotação geral.</small>
-            </div>
-            <div class="col-md-5 d-flex align-items-end mt-3 mt-md-0">
-                <button class="btn btn-primary btn-lg w-100 fw-bold shadow" onclick="gerarPreview()">👁️ Gerar Pré-visualização</button>
-            </div>
-        </div>
+        <button class="btn btn-primary btn-lg w-100 fw-bold shadow mb-4" onclick="gerarPreview()">👁️ Gerar Pré-visualização na Tela</button>
         
         <div id="areaPreview" class="d-none border rounded p-3 bg-white shadow-sm">
             <h5 class="text-center fw-bold text-success mb-3">✅ Pré-visualização do Relatório</h5>
@@ -271,9 +255,9 @@
         const modalElement = document.getElementById('modalTutorial');
         if (modalElement) {
             const tutorialModal = new bootstrap.Modal(modalElement);
-            if (!localStorage.getItem('tutorialNotebooksVisto5')) {
+            if (!localStorage.getItem('tutorialNotebooksVisto6')) {
                 tutorialModal.show();
-                localStorage.setItem('tutorialNotebooksVisto5', 'true');
+                localStorage.setItem('tutorialNotebooksVisto6', 'true');
             }
         }
 
@@ -314,7 +298,6 @@
                 numAulasDia: parseInt(document.getElementById('modeloEscola').value),
                 numEstacoesInput: document.getElementById('numEstacoes').value,
                 numTurmasInput: document.getElementById('numTurmas').value,
-                diaPrioridade: document.getElementById('diaPrioridade') ? document.getElementById('diaPrioridade').value : 'nenhum',
                 estacoes: estacoes,
                 turmas: turmas,
                 prioridadesInfo: prioridadesInfo
@@ -335,9 +318,7 @@
 
         if(app.nomeEscola) document.getElementById('nomeEscola').value = app.nomeEscola;
         if(app.nomeArquivoJSON) document.getElementById('nomeArquivoJSON').value = app.nomeArquivoJSON;
-        if(app.diaPrioridade && document.getElementById('diaPrioridade')) document.getElementById('diaPrioridade').value = app.diaPrioridade;
 
-        // O CORAÇÃO DA CORREÇÃO: Respeita o tamanho real das arrays no arquivo!
         document.getElementById('numEstacoes').value = estacoes.length > 0 ? estacoes.length : (app.numEstacoesInput || 1);
         document.getElementById('numTurmas').value = turmas.length > 0 ? turmas.length : (app.numTurmasInput || 1);
         document.getElementById('modeloEscola').value = numAulasDia;
@@ -547,7 +528,6 @@
         if (!nomeArquivo.endsWith('.json')) nomeArquivo += '.json';
         
         const nomeEscola = document.getElementById('nomeEscola').value;
-        const diaPrio = document.getElementById('diaPrioridade') ? document.getElementById('diaPrioridade').value : 'nenhum';
         
         const data = {
             nomeEscola: nomeEscola,
@@ -555,7 +535,6 @@
             numAulasDia: parseInt(document.getElementById('modeloEscola').value),
             numEstacoesInput: document.getElementById('numEstacoes').value,
             numTurmasInput: document.getElementById('numTurmas').value,
-            diaPrioridade: diaPrio,
             estacoes: estacoes,
             turmas: turmas,
             prioridadesInfo: prioridadesInfo
@@ -586,7 +565,6 @@
         lerEstacoes();
         if(estacoes.length === 0 || turmas.length === 0) return alert("Faltam dados para gerar a distribuição.");
 
-        let diaPriorizado = document.getElementById('diaPrioridade') ? document.getElementById('diaPrioridade').value : 'nenhum';
         let concorrenciaPorHorario = {}; 
         
         diasIds.forEach(diaId => {
@@ -618,13 +596,6 @@
                 });
 
                 ocorrencias.sort((a, b) => {
-                    if (diaPriorizado !== 'nenhum') {
-                        let aPrioGlobal = a.diaId === diaPriorizado;
-                        let bPrioGlobal = b.diaId === diaPriorizado;
-                        if (aPrioGlobal && !bPrioGlobal) return -1;
-                        if (!aPrioGlobal && bPrioGlobal) return 1;
-                    }
-
                     let prefA = (regra.diasPref && regra.diasPref.includes(a.diaId)) ? 1 : 0;
                     let prefB = (regra.diasPref && regra.diasPref.includes(b.diaId)) ? 1 : 0;
 
@@ -643,11 +614,6 @@
         });
 
         let diasParaProcessar = [...diasIds].reverse(); 
-        if (diaPriorizado !== 'nenhum') {
-            diasParaProcessar = diasParaProcessar.filter(d => d !== diaPriorizado);
-            diasParaProcessar.unshift(diaPriorizado);
-        }
-
         let alocacoesFinais = [];
         let contagemUso = {};
 
